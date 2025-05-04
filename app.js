@@ -38,7 +38,27 @@ app.get('/', (req, res)=>{
 // Get all tasks
 app.get('/tasks', function(req, res) {
     const data = readTasks();
-    res.json(data.tasks || []);
+    const { completed } = req.query;
+    
+    //If no filter is applied, return all tasks 
+    if (completed === undefined) {
+        return res.json(data.tasks || []);
+    }
+    
+    //query parameter to boolean fir proper comparision of task.completed
+    let isCompleted;
+    if (completed === 'true') {
+        isCompleted = true;
+    } else if (completed === 'false') {
+        isCompleted = false;
+    } else {
+        // If the value isnt true or false, return an error with message
+        return res.status(400).json({ error: 'Completed parameter must be true or false' });
+    }
+    
+    //filter all tasks by compleetion status
+    const filteredTasks = data.tasks.filter(task => task.completed === isCompleted);
+    res.json(filteredTasks);
 });
 
 // Get task by ID
@@ -137,7 +157,8 @@ app.delete('/tasks/:id', (req, res) => {
   res.status(200).json({ message: 'Task deleted successfully', task: deletedTask });
 });
 
-// Only start the server if this file is executed directly (not required by tests)
+// Only start the server if this file is executed directly and not reqd by test
+// tests were failing
 if (require.main === module) {
   app.listen(port, (err) => {
       if (err) {
