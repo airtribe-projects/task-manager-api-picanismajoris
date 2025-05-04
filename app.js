@@ -41,6 +41,99 @@ app.get('/tasks', function(req, res) {
     res.json(data.tasks || []);
 });
 
+// Get task by ID
+app.get('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const data = readTasks();
+  const task = data.tasks.find(task => task.id === id);
+  
+  if (!task) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  res.status(200).json(task);
+});
+
+// Create new task
+app.post('/tasks', (req, res) => {
+  const {title, description, completed} = req.body;
+  
+  // validate inputs
+  if (!title || description === undefined) {
+    return res.status(400).json({ error: 'Title and description are required' });
+  }
+  
+  const data = readTasks();
+  
+  // Find the highest id and increment by 1
+  const maxId = data.tasks.reduce((max, task) => (task.id > max ? task.id : max), 0);
+  const newId = maxId + 1;
+  
+  const newTask = {
+    id: newId,
+    title,
+    description,
+    completed: completed || false
+  };
+  
+  data.tasks.push(newTask);
+  writeTasks(data);
+  
+  res.status(201).json(newTask);
+});
+
+// Update task
+app.put('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { title, description, completed } = req.body;
+  
+  if (!title && description === undefined && completed === undefined) {
+    return res.status(400).json({ error: 'At least one field to update is required' });
+  }
+  
+  // Check if completed is a boolean type when provided
+  if (completed !== undefined && typeof completed !== 'boolean') {
+    return res.status(400).json({ error: 'Completed must be a boolean value' });
+  }
+  
+  const data = readTasks();
+  const taskIndex = data.tasks.findIndex(task => task.id === id);
+  
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  // Update the task with new values while keeping the existing values if not provided
+  data.tasks[taskIndex] = {
+    ...data.tasks[taskIndex],
+    title: title || data.tasks[taskIndex].title,
+    description: description !== undefined ? description : data.tasks[taskIndex].description,
+    completed: completed !== undefined ? completed : data.tasks[taskIndex].completed
+  };
+  
+  writeTasks(data);
+  
+  res.status(200).json(data.tasks[taskIndex]);
+});
+
+// Delete task
+app.delete('/tasks/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const data = readTasks();
+  const taskIndex = data.tasks.findIndex(task => task.id === id);
+  
+  if (taskIndex === -1) {
+    return res.status(404).json({ error: 'Task not found' });
+  }
+  
+  const deletedTask = data.tasks[taskIndex];
+  data.tasks.splice(taskIndex, 1);
+  
+  writeTasks(data);
+  
+  res.status(200).json({ message: 'Task deleted successfully', task: deletedTask });
+});
+
 app.listen(port, (err) => {
     if (err) {
         return console.log('Something bad happened', err);
