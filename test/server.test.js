@@ -102,5 +102,6 @@ tap.test("DELETE /tasks/:id with invalid id", async (t) => {
 });
 
 tap.teardown(() => {
-  process.exit(0);
+  // Remove process.exit to prevent premature termination
+  console.log('Tests completed');
 });

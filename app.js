@@ -64,11 +64,14 @@ app.post('/tasks', (req, res) => {
   }
   
   const data = readTasks();
-  
-  // Find the highest id and increment by 1
-  const maxId = data.tasks.reduce((max, task) => (task.id > max ? task.id : max), 0);
+  // Generate a new ID
+  let maxId = 0;
+  for (const task of data.tasks) {
+      if (task.id > maxId) {
+          maxId = task.id;
+      }
+  }
   const newId = maxId + 1;
-  
   const newTask = {
     id: newId,
     title,
@@ -134,11 +137,14 @@ app.delete('/tasks/:id', (req, res) => {
   res.status(200).json({ message: 'Task deleted successfully', task: deletedTask });
 });
 
-app.listen(port, (err) => {
-    if (err) {
-        return console.log('Something bad happened', err);
-    }
-    console.log(`Server is listening on ${port}`);
-});
+// Only start the server if this file is executed directly (not required by tests)
+if (require.main === module) {
+  app.listen(port, (err) => {
+      if (err) {
+          return console.log('Something bad happened', err);
+      }
+      console.log(`Server is listening on ${port}`);
+  });
+}
 
 module.exports = app;
