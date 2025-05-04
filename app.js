@@ -74,14 +74,34 @@ app.get('/tasks/:id', (req, res) => {
   res.status(200).json(task);
 });
 
+// Get tasks by priority level
+app.get('/tasks/priority/:level', (req, res) => {
+  const priorityLevel = req.params.level.toLowerCase();
+  
+  // Validate priority level
+  if (!['low', 'medium', 'high'].includes(priorityLevel)) {
+    return res.status(400).json({ error: 'Priority level must be low, medium, or high' });
+  }
+  
+  const data = readTasks();
+  const filteredTasks = data.tasks.filter(task => task.priority && task.priority.toLowerCase() === priorityLevel);
+  
+  res.status(200).json(filteredTasks);
+});
+
 // Create new task
 app.post('/tasks', (req, res) => {
-  const {title, description, completed} = req.body;
+  const {title, description, completed, priority} = req.body;
   
   // validate inputs
   if (!title || description === undefined) {
     return res.status(400).json({ error: 'Title and description are required' });
   }
+  
+  // Priority validation lowercase all
+  if (priority && !['low', 'medium', 'high'].includes(priority.toLowerCase())) {   
+        return res.status(400).json({ error: 'Priority must be low, medium, or high' });          
+    }
   
   const data = readTasks();
   // Generate a new ID
@@ -96,7 +116,8 @@ app.post('/tasks', (req, res) => {
     id: newId,
     title,
     description,
-    completed: completed || false
+    completed: completed || false,
+    priority: priority ? priority.toLowerCase() : 'medium' // Initiaziling priority to medium if nothing given
   };
   
   data.tasks.push(newTask);
@@ -108,15 +129,20 @@ app.post('/tasks', (req, res) => {
 // Update task
 app.put('/tasks/:id', (req, res) => {
   const id = parseInt(req.params.id);
-  const { title, description, completed } = req.body;
+  const { title, description, completed, priority } = req.body;
   
-  if (!title && description === undefined && completed === undefined) {
+  if (!title && description === undefined && completed === undefined && priority === undefined) {
     return res.status(400).json({ error: 'At least one field to update is required' });
   }
   
   // Check if completed is a boolean type when provided
   if (completed !== undefined && typeof completed !== 'boolean') {
     return res.status(400).json({ error: 'Completed must be a boolean value' });
+  }
+  
+  // Validate priority if provided
+  if (priority !== undefined && !['low', 'medium', 'high'].includes(priority.toLowerCase())) {
+    return res.status(400).json({ error: 'Priority must be low, medium, or high' });
   }
   
   const data = readTasks();
@@ -131,7 +157,8 @@ app.put('/tasks/:id', (req, res) => {
     ...data.tasks[taskIndex],
     title: title || data.tasks[taskIndex].title,
     description: description !== undefined ? description : data.tasks[taskIndex].description,
-    completed: completed !== undefined ? completed : data.tasks[taskIndex].completed
+    completed: completed !== undefined ? completed : data.tasks[taskIndex].completed,
+    priority: priority !== undefined ? priority.toLowerCase() : data.tasks[taskIndex].priority
   };
   
   writeTasks(data);
